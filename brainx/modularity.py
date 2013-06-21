@@ -388,12 +388,12 @@ class GraphPartition(object):
         #Compute the change in modularity
         return (e1[m1]-a1[m1]**2) + (e1[m2]-a1[m2]**2) - mod_old
 
-    def compute_node_update(self, n, m1, m2):
+    def compute_node_update(self, node, m1, m2):
         """Moves a single node within or between modules
 
         Parameters
         ----------
-        n : node identifier
+        node : node identifier
           The node that will be moved from module m1 to module m2
         m1 : module identifier
           The module that n used to belong to.
@@ -408,14 +408,14 @@ class GraphPartition(object):
         n1 = self.index[m1]
         n2 = self.index[m2]
 
-        node_moved_mods = {0: n1 - set([n]),1: n2 | set([n])}
-
+        node_moved_mods = {0 : n1 - set([node]), 1 : n2 | set([node])}
+        
         # Before we overwrite the mod vectors, compute the contribution to
         # modularity from before the change
         e1 = [0,0]
         a1 = [0,0]
         e0, a0 = self.mod_e, self.mod_a
-
+        
         # The values that change: _edge_info with arguments will update the e,
         # a vectors only for the modules in index
         e1, a1 = self._edge_info(e1, a1, node_moved_mods)
@@ -424,8 +424,9 @@ class GraphPartition(object):
         delta_q =  ( (e1[0]-a1[0]**2) + (e1[1]-a1[1]**2)) - \
             ( (e0[m1]-a0[m1]**2) + (e0[m2]-a0[m2]**2) )
 
+
         #print n,m1,m2,node_moved_mods,n1,n2
-        return node_moved_mods, e1, a1, -delta_q, n, m1, m2
+        return node_moved_mods, e1, a1, -delta_q, node, m1, m2
 
     def apply_node_update(self, n, m1, m2, node_moved_mods, e_new, a_new):
         """Moves a single node within or between modules
@@ -1393,7 +1394,7 @@ def adjust_partition(g, partition, max_iter=None):
     iterations = 0
     max_iter = max_iter or np.inf
     best_modularity = partition.modularity()
-
+    
     while nodes and no_improvement < 10 and iterations <= max_iter:
         moves = []
         move_modularity = []
@@ -1404,12 +1405,23 @@ def adjust_partition(g, partition, max_iter=None):
                 moves.append((n, node_map[n], p))
                 M = -partition.compute_node_update(n, node_map[n], p)[3]
                 move_modularity.append(M)
-
+        
         (n, p0, p1) = moves[np.argmax(move_modularity)]
+
         split_modules, e_new, a_new = partition.compute_node_update(n, p0, p1)[:3]
         partition.apply_node_update(n, p0, p1, split_modules, e_new, a_new)
         node_map[n] = p1
         nodes.remove(n)
+
+        # Perform adjustments after merge instances
+        if not P == set(range(len(partition))):
+            # Reset the module labels in the initial partition
+            P = set(range(len(partition)))
+            # Recreate the dict that maps nodes to their partition labels
+            node_map = {}
+            for p in P:
+                for node in partition.index[p]:
+                    node_map[node] = p
 
         print '[%d/%d] -> %.4f' % (len(nodes), L, partition.modularity())
 

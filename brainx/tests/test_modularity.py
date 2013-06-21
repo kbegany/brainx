@@ -738,17 +738,28 @@ def test_apply_node_move():
 
 
 def test_adjust_partition():
-    e = np.loadtxt(os.path.join(os.path.dirname(__file__), 'jazz.net'),
+    # Check that adjust_partition returns best output
+    e1 = np.loadtxt(os.path.join(os.path.dirname(__file__), 'jazz.net'),
                    skiprows=3, dtype=int)[:, :2] - 1
-    g = nx.Graph()
-    g.add_edges_from(e)
+    g1 = nx.Graph()
+    g1.add_edges_from(e1)
 
-    p0 = mod.newman_partition(g)
-    p1 = mod.adjust_partition(g, p0, max_iter=6)
+    g1_p0 = mod.newman_partition(g1)
+    g1_p1 = mod.adjust_partition(g1, g1_p0, max_iter=6)
 
-    npt.assert_(p0 > 0.38)
-    npt.assert_(p1 > 0.42)
-
+    npt.assert_(g1_p0 > 0.38)
+    npt.assert_(g1_p1 > 0.42)
+    
+    # Check that adjust_partition handles merges properly
+    e2 = np.loadtxt(os.path.join(os.path.dirname(__file__), 'simple_net.txt'),
+                   dtype=int)
+    g2 = nx.Graph()
+    g2.add_edges_from(e2)
+    
+    g2_p0 = {0: {0,1,2}, 1: {3,4,5,6}, 2: {7,8,9}}
+    g2_p1 = mod.adjust_partition(g2, g2_p0)
+    
+    npt.assert_(g2_p0 > 0.39)
 
 def test_empty_graphpartition():
     g = nx.Graph()
@@ -769,7 +780,6 @@ def test_badindex_graphpartition():
     npt.assert_raises(TypeError, mod.GraphPartition, g, {0: g.nodes()})
     npt.assert_raises(ValueError, mod.GraphPartition, g, {0:set(g.nodes()[:-1])})
     npt.assert_raises(TypeError, mod.GraphPartition, g, g.nodes())
-
-
+    
 if __name__ == "__main__":
     npt.run_module_suite()
