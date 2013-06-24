@@ -756,7 +756,7 @@ def test_adjust_partition():
     g2 = nx.Graph()
     g2.add_edges_from(e2)
     
-    g2_p0 = {0: {0,1,2}, 1: {3,4,5,6}, 2: {7,8,9}}
+    g2_p0 = mod.GraphPartition(g2,{0: {0,1,2}, 1: {3,4,5,6}, 2: {7,8,9}})
     g2_p1 = mod.adjust_partition(g2, g2_p0)
     
     npt.assert_(g2_p0 > 0.39)
